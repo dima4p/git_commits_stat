@@ -1,2 +1,2 @@
 # git_commits_stat
-Script that caculates statistics of contributers' deposit for a group of projects
+Script that caculates statistics of contributers' deposits for a group of projects
