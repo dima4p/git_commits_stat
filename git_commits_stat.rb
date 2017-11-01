@@ -115,10 +115,10 @@ options = OpenStruct.new(
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$0} options"
   opts.separator ""
-  opts.on('-f', '--from date', "Date to start from. Default is beginning of month.") do |val|
+  opts.on('-f', '--from date', "Date to start from. Default is beginning of the current month.") do |val|
     options.from = get_date val
   end
-  opts.on('-t', '--to date', "Date to finish after. Default is now.") do |val|
+  opts.on('-t', '--to date', "Date to finish after. Default is end of the current month.") do |val|
     options.to = get_date val
   end
   opts.on('-m', '--month n', "Show n-th month ago. Default is 0") do |val|
@@ -128,10 +128,10 @@ OptionParser.new do |opts|
     options.root = val
     options.root << '/' unless options.root.last == '/'
   end
-  opts.on('-F', 'Fethch projects to have them actual') do
+  opts.on('-F', 'Fetch projects to have them actual') do
     options.fetch = true
   end
-  opts.on('-v', 'Verbose') do
+  opts.on('-v', 'Prints the project name before fetch if requested') do
     options.verbose = true
   end
   opts.on('-p', 'Show projects statistics') do
@@ -140,7 +140,7 @@ OptionParser.new do |opts|
   opts.on('-c', 'Include commit data to projects statistics') do
     options.commits = true
   end
-  opts.on('-x', '--exclude list', 'Exclude commits') do |val|
+  opts.on('-x', '--exclude list', 'Comma separated list of the commits to be skipped in calculation') do |val|
     options.exclude = val.split(/,/)
   end
   opts.on('-a', 'Alias names') do
