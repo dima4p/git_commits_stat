@@ -69,17 +69,19 @@ def count_commit(new_lines, project, author, count, commit)
 end
 
 def print_result(new_lines, options)
+  ws1 = ' ' * (options.alias ?  5 :  3)
+  ws2 = ' ' * (options.alias ? 23 : 21)
   grand_total = new_lines.delete :total
   new_lines.sort_by{|author, projects| projects[:total]}.reverse.each do |author, projects|
     total = projects.delete :total
-    puts author
+    print alias_name author, options
     puts " =>#{sprintf '%6d', total} - #{sprintf '%5.2f%', 100.0 * total / grand_total}"
     if options.projects
       projects.sort_by{|project, details| details[:total]}.reverse.each do |project, details|
-        puts "   #{sprintf '%6d', details[:total]} - #{sprintf '%5.2f%', 100.0 * details[:total] / total} - #{project}"
+        puts "#{ws1}#{sprintf '%6d', details[:total]} - #{sprintf '%5.2f%', 100.0 * details[:total] / total} - #{project}"
         if options.commits
           details[:commits].sort_by(&:first).reverse.each do |count, commit|
-            puts "                     #{sprintf '%4d', count} #{commit[0..8]}"
+            puts "#{ws2}#{sprintf '%4d', count} #{commit[0..8]}"
           end
         end
       end
@@ -88,10 +90,25 @@ def print_result(new_lines, options)
   puts "TOTAL: #{grand_total}"
 end
 
+def alias_name(name, options)
+  return "#{name}\n" unless options.alias
+  name, email = name.split(/ </)
+  names = name.split(/ +/)
+  if names.length < 2
+    names = name.split('.')
+    if names.length < 2
+      names = email.split('@').first.split(/[-_.+]/)
+      if names.length < 2
+        names = name[0..1].split ''
+      end
+    end
+  end
+  "#{names.first[0]}#{names.last[0]}".upcase
+end
+
 options = OpenStruct.new(
   root: './',
   month: 0,
-  fetch: false,
   exclude: []
 )
 
@@ -125,6 +142,9 @@ OptionParser.new do |opts|
   end
   opts.on('-x', '--exclude list', 'Exclude commits') do |val|
     options.exclude = val.split(/,/)
+  end
+  opts.on('-a', 'Alias names') do
+    options.alias = true
   end
 end.parse!
 
