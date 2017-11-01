@@ -89,7 +89,7 @@ def print_result(new_lines, options)
 end
 
 options = OpenStruct.new(
-  root: '/home/dima/devel/mice/',
+  root: './',
   month: 0,
   fetch: false,
   exclude: []
