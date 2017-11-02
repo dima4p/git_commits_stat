@@ -126,7 +126,7 @@ OptionParser.new do |opts|
   end
   opts.on('-r', '--root dir', "Look up the projects in the dir. Default is #{options.root}") do |val|
     options.root = val
-    options.root << '/' unless options.root.last == '/'
+    options.root << '/' unless options.root[-1] == '/'
   end
   opts.on('-F', 'Fetch projects to have them actual') do
     options.fetch = true
