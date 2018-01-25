@@ -1,5 +1,6 @@
 # git_commits_stat
-Script that calculates statistics of contributers' deposits for a group of projects
+Script that calculates statistics of contributers' deposits for a group of projects. The subject is to count only new lines with code. For that some technics is used.
+Now the script recoginzes only ruby comments. See (TODO)[#markdown-header-todo]
 
 ## Assumption
 All the projects to analyze must reside in one directory.
@@ -22,6 +23,11 @@ Usage: git_commits_stat.rb options
 
     -r, --root dir
           Look up the projects in the dir. Default is ./
+
+    -l, --limit max new lines
+          Since too big commits usually are produced by generators or by copy/paste, or
+          by other autmatic tools it is worth to ignore them. This option defines the limit.
+          Note, that only new lines are counted. To disable set the limit to 0.
 
     -F
           Without this options the current state of the found repositories are used.

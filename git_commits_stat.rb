@@ -55,10 +55,11 @@ def process_commit(project, new_lines, commit, author, options)
         line.blank? or
         line[0] == '#'
   end
-  count_commit new_lines, project, author, data.size, commit
+  count_commit new_lines, project, author, data.size, commit, options
 end
 
-def count_commit(new_lines, project, author, count, commit)
+def count_commit(new_lines, project, author, count, commit, options)
+  return if count > options.limit
   new_lines[:total] ||= 0
   new_lines[author] ||= {total: 0}
   new_lines[author][project] ||= {total: 0, commits: []}
@@ -74,11 +75,12 @@ def print_result(new_lines, options)
   grand_total = new_lines.delete :total
   new_lines.sort_by{|author, projects| projects[:total]}.reverse.each do |author, projects|
     total = projects.delete :total
+    next unless total > 0
     print alias_name author, options
-    puts " =>#{sprintf '%6d', total} - #{sprintf '%5.2f%', 100.0 * total / grand_total}"
+    puts " =>#{sprintf '%6d', total} - #{sprintf '%5.2f%%', 100.0 * total / grand_total}"
     if options.projects
       projects.sort_by{|project, details| details[:total]}.reverse.each do |project, details|
-        puts "#{ws1}#{sprintf '%6d', details[:total]} - #{sprintf '%5.2f%', 100.0 * details[:total] / total} - #{project}"
+        puts "#{ws1}#{sprintf '%6d', details[:total]} - #{sprintf '%5.2f%%', 100.0 * details[:total] / total} - #{project}" if details[:total] > 0
         if options.commits
           details[:commits].sort_by(&:first).reverse.each do |count, commit|
             puts "#{ws2}#{sprintf '%4d', count} #{commit[0..8]}"
@@ -109,6 +111,7 @@ end
 options = OpenStruct.new(
   root: './',
   month: 0,
+  limit: 2000,
   exclude: []
 )
 
@@ -127,6 +130,10 @@ OptionParser.new do |opts|
   opts.on('-r', '--root dir', "Look up the projects in the dir. Default is #{options.root}") do |val|
     options.root = val
     options.root << '/' unless options.root[-1] == '/'
+  end
+  opts.on('-l', '--limit max_new_lines', "Ignores commits larger than max_new_lines. Default is #{options.limit}") do |val|
+    options.limit = val.to_i.abs
+    options.limit = BigDecimal.new('Infinity') if options.limit == 0
   end
   opts.on('-F', 'Fetch projects to have them actual') do
     options.fetch = true
@@ -155,7 +162,8 @@ options.to = options.to + 1. day - options.month.months - 1.day
 
 new_lines = {}
 
-puts "From #{options.from} to #{options.to} in #{options.root}"
+limit = " with the limit of #{options.limit} new lines" if options.limit < BigDecimal.new('Infinity')
+puts "From #{options.from} to #{options.to} in #{options.root}#{limit}"
 Dir["#{options.root}*"].each do |dir|
   next unless File.directory? dir
   next unless File.directory? "#{dir}/.git"
