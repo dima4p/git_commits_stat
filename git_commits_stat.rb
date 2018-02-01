@@ -51,6 +51,18 @@ def get_email(author, options)
   end
 end
 
+def get_email(author, options)
+  if m = author.match(/(.*) <(.*)>/)
+    email = options.aliases[m[2]] || m[2]
+    name = m[1]
+    options.authors[email] ||= name
+    options.authors[email] = name if name.length > options.authors[email].length
+    email
+  else
+    options.authors[author] ||= author
+  end
+end
+
 def process_commit(project, new_lines, commit, email, options)
   return if options.exclude.detect do |c|
     commit[0...c.length] == c
@@ -123,7 +135,8 @@ options = OpenStruct.new(
   root: './',
   month: 0,
   limit: 2000,
-  exclude: []
+  exclude: [],
+  aliases: {}
 )
 
 OptionParser.new do |opts|
@@ -164,7 +177,18 @@ OptionParser.new do |opts|
   opts.on('-A', 'Abbreviate names') do
     options.abbreviate = true
   end
+  opts.on('-a', '--aliases LIST', 'Aliases of the contributors: comma-separated list of colon-separated emails') do |val|
+    options.aliases = {}
+    val.split(/,|;/).each do |contributor|
+      emails = contributor.split ':'
+      main_email = emails.shift
+      emails.each do |email|
+        options.aliases[email] = main_email
+      end
+    end
+  end
 end.parse!
+
 
 options.from ||= Date.current.beginning_of_month
 options.to ||= Date.current.end_of_month

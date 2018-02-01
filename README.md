@@ -48,6 +48,12 @@ Usage: git_commits_stat.rb options
 
     -A
           Abbreviates names: each name is abbreviated to two symbols.
+
+    -a, --aliases LIST
+          Sometimes one contributer may use different accouts. LIST is a comma-separated
+          list of such contributer's emails that should be colon-separeted.
+          For example: -a user1@mail.ru:user1@gmail.com,user2@list.ru:user2@gmail.com
+          The first email will be manifested.
 ```
 
 # TODO
