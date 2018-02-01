@@ -34,13 +34,24 @@ def process_project(project, dir, new_lines, options)
     bunch = bunch.split("\n")
     commit = bunch[0].split(' ')[1]
     author = bunch.detect{|line| line.include? 'Author:'}.split(/: */)[1]
-    process_commit project, new_lines, commit, author, options
+    email = get_email author, options
+    process_commit project, new_lines, commit, email, options
   end
 ensure
   Dir.chdir pwd
 end
 
-def process_commit(project, new_lines, commit, author, options)
+def get_email(author, options)
+  if author.match /(.*) <(.*)>/
+    options.authors[$2] ||= $1
+    options.authors[$2] = $1 if $1.length > options.authors[$2].length
+    $2
+  else
+    options.authors[author] ||= author
+  end
+end
+
+def process_commit(project, new_lines, commit, email, options)
   return if options.exclude.detect do |c|
     commit[0...c.length] == c
   end
@@ -55,28 +66,28 @@ def process_commit(project, new_lines, commit, author, options)
         line.blank? or
         line[0] == '#'
   end
-  count_commit new_lines, project, author, data.size, commit, options
+  count_commit new_lines, project, email, data.size, commit, options
 end
 
-def count_commit(new_lines, project, author, count, commit, options)
+def count_commit(new_lines, project, email, count, commit, options)
   return if count > options.limit
   new_lines[:total] ||= 0
-  new_lines[author] ||= {total: 0}
-  new_lines[author][project] ||= {total: 0, commits: []}
+  new_lines[email] ||= {total: 0}
+  new_lines[email][project] ||= {total: 0, commits: []}
   new_lines[:total] += count
-  new_lines[author][:total] += count
-  new_lines[author][project][:total] += count
-  new_lines[author][project][:commits] << [count, commit]
+  new_lines[email][:total] += count
+  new_lines[email][project][:total] += count
+  new_lines[email][project][:commits] << [count, commit]
 end
 
 def print_result(new_lines, options)
-  ws1 = ' ' * (options.alias ?  5 :  3)
-  ws2 = ' ' * (options.alias ? 23 : 21)
+  ws1 = ' ' * (options.abbreviate ?  5 :  3)
+  ws2 = ' ' * (options.abbreviate ? 23 : 21)
   grand_total = new_lines.delete :total
-  new_lines.sort_by{|author, projects| projects[:total]}.reverse.each do |author, projects|
+  new_lines.sort_by{|email, projects| projects[:total]}.reverse.each do |email, projects|
     total = projects.delete :total
     next unless total > 0
-    print alias_name author, options
+    print abbreviate_name email, options
     puts " =>#{sprintf '%6d', total} - #{sprintf '%5.2f%%', 100.0 * total / grand_total}"
     if options.projects
       projects.sort_by{|project, details| details[:total]}.reverse.each do |project, details|
@@ -92,9 +103,9 @@ def print_result(new_lines, options)
   puts "TOTAL: #{grand_total}"
 end
 
-def alias_name(name, options)
-  return "#{name}\n" unless options.alias
-  name, email = name.split(/ </)
+def abbreviate_name(email, options)
+  name = options.authors[email]
+  return "#{name} <#{email}>\n" unless options.abbreviate
   names = name.split(/ +/)
   if names.length < 2
     names = name.split('.')
@@ -150,8 +161,8 @@ OptionParser.new do |opts|
   opts.on('-x', '--exclude list', 'Comma separated list of the commits to be skipped in calculation') do |val|
     options.exclude = val.split(/,/)
   end
-  opts.on('-a', 'Alias names') do
-    options.alias = true
+  opts.on('-A', 'Abbreviate names') do
+    options.abbreviate = true
   end
 end.parse!
 
@@ -159,10 +170,11 @@ options.from ||= Date.current.beginning_of_month
 options.to ||= Date.current.end_of_month
 options.from -= options.month.months
 options.to = options.to + 1. day - options.month.months - 1.day
+options.authors = {}
 
 new_lines = {}
 
-limit = " with the limit of #{options.limit} new lines" if options.limit < BigDecimal.new('Infinity')
+limit = " with the limit of #{options.limit} new lines per commit" if options.limit < BigDecimal.new('Infinity')
 puts "From #{options.from} to #{options.to} in #{options.root}#{limit}"
 Dir["#{options.root}*"].each do |dir|
   next unless File.directory? dir

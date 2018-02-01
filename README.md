@@ -46,8 +46,8 @@ Usage: git_commits_stat.rb options
           Comma separated list of the commits to be skipped in calculation.
           This is usefull for the case, when a commit is a copy-paste of generated code.
 
-    -a
-          Alias names: each name is abbreviated to two symbols.
+    -A
+          Abbreviates names: each name is abbreviated to two symbols.
 ```
 
 # TODO
