@@ -134,7 +134,7 @@ end
 options = OpenStruct.new(
   root: './',
   month: 0,
-  limit: 2000,
+  limit: 1000,
   exclude: [],
   aliases: {}
 )
