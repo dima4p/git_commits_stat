@@ -22,6 +22,16 @@ rescue => e
   return nil
 end
 
+def process_directory(dir, new_lines, options)
+  return unless File.directory? dir
+  return unless File.directory? "#{dir}/.git"
+  File.open("#{dir}/.git/config").each_line.detect do |line|
+    line.match /url *= *([^ ]+)/
+  end
+  project = $1.split('/').last.split('.').first
+  process_project project, dir, new_lines, options
+end
+
 def process_project(project, dir, new_lines, options)
   pwd = Dir.getwd
   Dir.chdir dir
@@ -29,7 +39,7 @@ def process_project(project, dir, new_lines, options)
     puts project if options.verbose
     data, err, res = Open3.capture3 'git fetch'
   end
-  data, err, res = Open3.capture3 "git log --since=#{options.from} --until=#{options.to} origin/master | grep -EA2 '^commit '"
+  data, err, res = Open3.capture3 "git log --since=#{options.from} --until=#{options.to} origin/#{options.branch} | grep -EA2 '^commit '"
   data.split("\n--\n").each do |bunch|
     bunch = bunch.split("\n")
     commit = bunch[0].split(' ')[1]
@@ -136,7 +146,8 @@ options = OpenStruct.new(
   month: 0,
   limit: 1000,
   exclude: [],
-  aliases: {}
+  aliases: {},
+  branch: "master"
 )
 
 OptionParser.new do |opts|
@@ -150,6 +161,9 @@ OptionParser.new do |opts|
   end
   opts.on('-m', '--month n', "Show n-th month ago. Default is 0") do |val|
     options.month = val.to_i
+  end
+  opts.on('-b', '--brunch name', "Branch to be analysed. Default is #{options[:branch]}") do |val|
+    options.branch= val.to_s
   end
   opts.on('-r', '--root dir', "Look up the projects in the dir. Default is #{options.root}") do |val|
     options.root = val
@@ -189,7 +203,6 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-
 options.from ||= Date.current.beginning_of_month
 options.to ||= Date.current.end_of_month
 options.from -= options.month.months
@@ -200,14 +213,12 @@ new_lines = {}
 
 limit = " with the limit of #{options.limit} new lines per commit" if options.limit < BigDecimal.new('Infinity')
 puts "From #{options.from} to #{options.to} in #{options.root}#{limit}"
-Dir["#{options.root}*"].each do |dir|
-  next unless File.directory? dir
-  next unless File.directory? "#{dir}/.git"
-  File.open("#{dir}/.git/config").each_line.detect do |line|
-    line.match /url *= *([^ ]+)/
+if File.directory? "#{options.root}/.git"
+  process_directory options.root, new_lines, options
+else
+  Dir["#{options.root}*"].each do |dir|
+    process_directory dir, new_lines, options
   end
-  project = $1.split('/').last.split('.').first
-  process_project project, dir, new_lines, options
 end
 
 print_result new_lines, options
