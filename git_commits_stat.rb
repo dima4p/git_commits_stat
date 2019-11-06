@@ -33,6 +33,7 @@ def process_directory(dir, new_lines, options)
 end
 
 def process_project(project, dir, new_lines, options)
+  puts "Project #{project}"
   pwd = Dir.getwd
   Dir.chdir dir
   if options.fetch
@@ -171,7 +172,7 @@ OptionParser.new do |opts|
   end
   opts.on('-l', '--limit max_new_lines', "Ignores commits larger than max_new_lines. Default is #{options.limit}") do |val|
     options.limit = val.to_i.abs
-    options.limit = BigDecimal.new('Infinity') if options.limit == 0
+    options.limit = BigDecimal('Infinity') if options.limit == 0
   end
   opts.on('-F', 'Fetch projects to have them actual') do
     options.fetch = true
@@ -211,7 +212,7 @@ options.authors = {}
 
 new_lines = {}
 
-limit = " with the limit of #{options.limit} new lines per commit" if options.limit < BigDecimal.new('Infinity')
+limit = " with the limit of #{options.limit} new lines per commit" if options.limit < BigDecimal('Infinity')
 puts "From #{options.from} to #{options.to} in #{options.root}#{limit}"
 if File.directory? "#{options.root}/.git"
   process_directory options.root, new_lines, options
