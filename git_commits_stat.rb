@@ -40,7 +40,8 @@ def process_project(project, dir, new_lines, options)
     puts project if options.verbose
     data, err, res = Open3.capture3 'git fetch'
   end
-  data, err, res = Open3.capture3 "git log --since=#{options.from} --until=#{options.to} origin/#{options.branch} | grep -EA2 '^commit '"
+  command = "git log --since=#{options.from} --until=#{options.to} #{[options.remote, options.branch].compact.join '/'} | grep -EA2 '^commit '"
+  data, err, res = Open3.capture3 command
   data.split("\n--\n").each do |bunch|
     bunch = bunch.split("\n")
     commit = bunch[0].split(' ')[1]
@@ -148,29 +149,44 @@ options = OpenStruct.new(
   limit: 1000,
   exclude: [],
   aliases: {},
-  branch: "master"
+  branch: "master",
+  remote: 'origin',
 )
 
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$0} options"
   opts.separator ""
-  opts.on('-f', '--from date', "Date to start from. Default is beginning of the current month.") do |val|
+  opts.on('-f', '--from date',
+          "Date to start from. Default is beginning of the current month.") do |val|
     options.from = get_date val
   end
-  opts.on('-t', '--to date', "Date to finish after. Default is end of the current month.") do |val|
+  opts.on('-t', '--to date',
+          "Date to finish after. Default is end of the current month.") do |val|
     options.to = get_date val
   end
   opts.on('-m', '--month n', "Show n-th month ago. Default is 0") do |val|
     options.month = val.to_i
   end
-  opts.on('-b', '--brunch name', "Branch to be analysed. Default is #{options[:branch]}") do |val|
-    options.branch= val.to_s
+  opts.on('-b',
+          '--brunch name',
+          "Branch to be analysed. Default is #{options[:remote]}") do |val|
+    options.branch = val.to_s
   end
-  opts.on('-r', '--root dir', "Look up the projects in the dir. Default is #{options.root}") do |val|
+  opts.on('-R',
+          '--remote name',
+          "Name of the remote repository to use. " +
+            "Default is #{options[:remote].inspect}. " +
+            "When blank uses local branch") do |val|
+    options.remote = val.to_s.presence
+  end
+  opts.on('-r', '--root dir',
+          "Look up the projects in the dir. Default is #{options.root}") do |val|
     options.root = val
     options.root << '/' unless options.root[-1] == '/'
   end
-  opts.on('-l', '--limit max_new_lines', "Ignores commits larger than max_new_lines. Default is #{options.limit}") do |val|
+  opts.on('-l', '--limit max_new_lines',
+          "Ignores commits larger than max_new_lines. Default is #{options.limit}"
+         ) do |val|
     options.limit = val.to_i.abs
     options.limit = BigDecimal('Infinity') if options.limit == 0
   end
@@ -186,13 +202,16 @@ OptionParser.new do |opts|
   opts.on('-c', 'Include commit data to projects statistics') do
     options.commits = true
   end
-  opts.on('-x', '--exclude list', 'Comma separated list of the commits to be skipped in calculation') do |val|
+  opts.on('-x', '--exclude list',
+          'Comma separated list of the commits to be skipped in calculation') do |val|
     options.exclude = val.split(/,/)
   end
   opts.on('-A', 'Abbreviate names') do
     options.abbreviate = true
   end
-  opts.on('-a', '--aliases LIST', 'Aliases of the contributors: comma-separated list of colon-separated emails') do |val|
+  opts.on('-a', '--aliases LIST',
+          'Aliases of the contributors: comma-separated list of colon-separated emails'
+         ) do |val|
     options.aliases = {}
     val.split(/,|;/).each do |contributor|
       emails = contributor.split ':'
@@ -212,7 +231,9 @@ options.authors = {}
 
 new_lines = {}
 
-limit = " with the limit of #{options.limit} new lines per commit" if options.limit < BigDecimal('Infinity')
+if options.limit < BigDecimal('Infinity')
+  limit = " with the limit of #{options.limit} new lines per commit"
+end
 puts "From #{options.from} to #{options.to} in #{options.root}#{limit}"
 if File.directory? "#{options.root}/.git"
   process_directory options.root, new_lines, options

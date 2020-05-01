@@ -21,6 +21,9 @@ Usage: git_commits_stat.rb options
     -m, --month n
           Show n-th month ago. Default is 0. Options -f and -t have higher priority.
 
+    -R, --remote name
+          Name of the remote repository to use. Default is "origin". When blank uses local branch
+
     -r, --root dir
           Look up the projects in the dir. Default is ./
 
