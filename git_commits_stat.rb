@@ -40,7 +40,7 @@ def process_project(project, dir, new_lines, options)
     puts project if options.verbose
     data, err, res = Open3.capture3 'git fetch'
   end
-  command = "git log --since=#{options.from} --until=#{options.to} #{[options.remote, options.branch].compact.join '/'} | grep -EA2 '^commit '"
+  command = "git log --since='#{options.from} 00:00:00' --until='#{options.to} 23:59:59' #{[options.remote, options.branch].compact.join '/'} | grep -EA2 '^commit '"
   data, err, res = Open3.capture3 command
   data.split("\n--\n").each do |bunch|
     bunch = bunch.split("\n")
